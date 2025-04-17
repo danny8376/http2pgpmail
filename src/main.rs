@@ -22,6 +22,9 @@ use rocket::http::Status;
 const SMTP_URI: &str = "SMTP_URI";
 const MAIL_FROM: &str = "MAIL_FROM";
 const SECRET: &str = "SECRET";
+const KEY_PATH: &str = "KEY_PATH";
+
+const DEFAULT_KEY_PATH: &str = "keys";
 
 #[derive(FromForm)]
 struct MailReq {
@@ -38,7 +41,11 @@ fn sendmail(rcpt: &str, secret: Option<String>, mail: Form<MailReq>) -> Result<S
         },
         Err(_) => {}, // no secret set, ignore
     };
-    let pub_key_file = format!("{}.pub.asc", rcpt);
+    let key_path = match env::var(KEY_PATH) {
+        Ok(path) => path,
+        Err(_) => DEFAULT_KEY_PATH.to_string(),
+    };
+    let pub_key_file = format!("{}/{}.pub.asc", key_path, rcpt);
     let key_string = match fs::read_to_string(pub_key_file) {
         Ok(res) => res,
         Err(_e) => return Err(Custom(Status::NotFound, format!("Key for {} doesn't exist!", rcpt))),
