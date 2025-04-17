@@ -1,0 +1,13 @@
+[package]
+name = "http2pgpmail"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rocket = "0.5.1"
+lettre = "0.11"
+pgp = "0.15.0"
+rand = "0.8.5"
+dotenv = "0.15.0"
+#rand_chacha = { version = "0.3.1", features = [ "os_rng" ] }
+
