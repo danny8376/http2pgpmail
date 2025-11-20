@@ -14,7 +14,9 @@ use pgp::crypto::sym::SymmetricKeyAlgorithm;
 use pgp::types::PublicKeyTrait;
 //use rand_core::{SeedablddeRng, RngCore};
 //use rand_chacha::ChaCha20Core;
+use serde::Deserialize;
 use rocket::form::Form;
+use rocket::serde::json::Json;
 use rocket::response::status::Custom;
 use rocket::http::Status;
 
@@ -26,14 +28,23 @@ const KEY_PATH: &str = "KEY_PATH";
 
 const DEFAULT_KEY_PATH: &str = "keys";
 
-#[derive(FromForm)]
+#[derive(FromForm, Deserialize)]
 struct MailReq {
     title: String,
     body: String,
 }
 
-#[post("/sendmail/<rcpt>?<secret>", data = "<mail>")]
-fn sendmail(rcpt: &str, secret: Option<String>, mail: Form<MailReq>) -> Result<String, Custom<String>> {
+#[post("/sendmail/<rcpt>?<secret>", format = "form", data = "<mail>")]
+fn sendmail_form(rcpt: &str, secret: Option<String>, mail: Form<MailReq>) -> Result<String, Custom<String>> {
+    sendmail(rcpt, secret, mail.into_inner())
+}
+
+#[post("/sendmail/<rcpt>?<secret>", format = "json", data = "<mail>")]
+fn sendmail_json(rcpt: &str, secret: Option<String>, mail: Json<MailReq>) -> Result<String, Custom<String>> {
+    sendmail(rcpt, secret, mail.into_inner())
+}
+
+fn sendmail(rcpt: &str, secret: Option<String>, mail: MailReq) -> Result<String, Custom<String>> {
     match env::var(SECRET) {
         Ok(expected) => match secret {
             Some(secret) if secret == expected => {}, // passed
@@ -106,5 +117,6 @@ fn sendmail(rcpt: &str, secret: Option<String>, mail: Form<MailReq>) -> Result<S
 fn rocket() -> _ {
     dotenv().ok();
     rocket::build()
-        .mount("/", routes![sendmail])
+        .mount("/", routes![sendmail_form])
+        .mount("/", routes![sendmail_json])
 }
